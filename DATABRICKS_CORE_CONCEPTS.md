@@ -39,14 +39,31 @@ The gotcha: "lakehouse" and "Delta Lake" appear as distractors for each other co
 The platform's shape today is the accumulated result of seven years of specific releases, each fixing what the previous stage left open. Reading the sequence explains why several features overlap in scope and why some carry two names.
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    cScale0: "#f4f4f2"
+    cScale1: "#f4f4f2"
+    cScale2: "#f4f4f2"
+    cScale3: "#f4f4f2"
+    cScale4: "#f4f4f2"
+    cScale5: "#f4f4f2"
+    cScaleLabel0: "#24261f"
+    cScaleLabel1: "#24261f"
+    cScaleLabel2: "#24261f"
+    cScaleLabel3: "#24261f"
+    cScaleLabel4: "#24261f"
+    cScaleLabel5: "#24261f"
+---
 timeline
     title Delta Lake and the Databricks platform
-    2016-2017 : Databricks Delta<br/>proprietary
-    2019 : Delta Lake open-sourced<br/>Linux Foundation
-    2021 : Unity Catalog announced<br/>Delta Live Tables announced
-    2022 : DLT reaches GA<br/>Delta Lake 2.0, all APIs open
-    2024 : Liquid clustering GA<br/>Unity Catalog open-sourced<br/>Lakeflow announced
-    2025 : DLT to Lakeflow Declarative Pipelines<br/>core donated to Apache Spark
+    2016-2017 : Databricks Delta (proprietary)
+    2019 : Delta Lake open-sourced to Linux Foundation
+    2021 : Unity Catalog announced : Delta Live Tables announced
+    2022 : DLT reaches GA : Delta Lake 2.0, all APIs open
+    2024 : Liquid clustering GA : Unity Catalog open-sourced : Lakeflow announced
+    2025 : DLT becomes Lakeflow Declarative Pipelines : core donated to Apache Spark
 ```
 
 - **2016–2017 — Databricks (Databricks Delta).** Developed internally from 2016 and announced at Spark Summit 2017 as a proprietary Databricks feature. The transaction-log design that defines the format today was already in place; what was missing was any guarantee that data written this way remained readable outside Databricks — the precise concern that blocked adoption by organizations unwilling to accept format lock-in.
