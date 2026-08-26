@@ -1,6 +1,6 @@
 # Databricks Tables & Glossary
 
-Everything in the reference documents reduced to lookup form. Section 1 is a glossary of every term, grouped by topic. Sections 2–12 are comparison tables grouped by topic — every "X versus Y" distinction in one place. Section 13 indexes commands by what you are trying to do.
+Everything in the reference documents reduced to lookup form. Section 1 is a glossary of every term, grouped by topic. Sections 2–13 are comparison tables grouped by topic — every "X versus Y" distinction in one place. Section 14 indexes commands by what you are trying to do.
 
 Companion to `DATABRICKS_CORE_CONCEPTS.md`, which carries the explanations. This file assumes you already know the concept and need the distinction, the syntax, or the number.
 
@@ -197,6 +197,14 @@ Grouped by topic, following the order of `DATABRICKS_CORE_CONCEPTS.md`. Terms ap
 |---|---|
 | **Databricks Assistant** | In-context AI help for writing, explaining, and debugging code and SQL. For people who write queries. |
 | **Genie** | Natural-language Q&A over a curated set of governed tables. For people who do not write SQL. |
+| **Genie space** | The configured unit: a chosen set of tables, a SQL warehouse, plus curation. Genie answers only from the tables its space contains. |
+| **General instructions** | Plain-language rules the space always applies — definitions, defaults, exclusions. The first curation lever to reach for. |
+| **Example SQL queries** | Curated question-and-query pairs teaching the correct join paths and filters by demonstration. |
+| **Trusted asset** | A certified, often parameterized query that Genie runs verbatim rather than generating. The strongest guarantee of a correct answer. |
+| **Synonyms** | Vocabulary hints mapping business words to column names, so "revenue" resolves to `net_sales_amt`. |
+| **Sample questions** | Starter prompts shown in the UI, steering users toward what the space answers well. |
+| **Benchmark (Genie)** | A saved question with its expected answer, re-run after changes to check accuracy did not regress. |
+| **Question history** | Log of what users actually asked and how Genie answered. The primary input to iteration. |
 
 ### 1.14 Data modeling
 
@@ -710,7 +718,87 @@ A run overrunning its interval silently skips the next scheduled trigger — mis
 
 ---
 
-## 13. Command index by intent
+## 13. AI/BI Genie
+
+### Genie vs Databricks Assistant
+
+| | Genie | Databricks Assistant |
+|---|---|---|
+| Audience | Business users who do not write SQL | People who do write SQL |
+| Input | A question in plain language | A prompt, comment, or partial code |
+| Output | An answer, plus the SQL it generated | Code, an explanation, or a fix |
+| Scope | Only the tables in its space | The notebook or editor you are in |
+| Needs curation | Yes — accuracy depends on it | No |
+| Lives in | A Genie space | Notebooks and the SQL editor |
+
+A question asking how a non-technical stakeholder gets answers without SQL is Genie. A question about helping an analyst write a query faster is the Assistant. "Just build them a dashboard" is the common distractor — a dashboard answers fixed questions, Genie answers unanticipated ones.
+
+### The six curation mechanisms
+
+| Mechanism | What it supplies | Use when |
+|---|---|---|
+| General instructions | Plain-language rules the space always applies | Defining terms, defaults, exclusions — start here |
+| Example SQL queries | Question-and-query pairs teaching correct joins and filters | Genie picks the wrong join path or grain |
+| Trusted assets | Certified, parameterized queries run verbatim | A metric must be exactly right, every time |
+| Table and column comments | Metadata the model reads to interpret schema | Names are cryptic or ambiguous |
+| Synonyms | Business vocabulary mapped to column names | Users say "revenue", the column is `net_sales_amt` |
+| Sample questions | Starter prompts shown in the UI | Steering users toward what the space answers well |
+
+Each closes a different category of wrong guess. Instructions fix *rules*, examples fix *query shape*, trusted assets remove guessing entirely, comments and synonyms fix *vocabulary*, sample questions shape *what gets asked*.
+
+### Permissions — two independent layers
+
+| Layer | Controls | Set in |
+|---|---|---|
+| Space access | Who can open and use the Genie space | Genie space permissions |
+| Data access | Which rows and columns they can see | Unity Catalog grants |
+
+Genie **inherits Unity Catalog permissions** and cannot reveal data a user was not already granted. Two people asking the same question can correctly get different answers. Access to a space is never access to its data.
+
+### Setup
+
+| Element | Choice | Note |
+|---|---|---|
+| Tables | A small curated set | Clean gold tables, not hundreds of raw ones |
+| SQL warehouse | The compute answering queries | Serverless for responsiveness |
+| Instructions | Plain-language rules | Highest-leverage first step |
+| Sample questions | Visible starter prompts | Sets expectations |
+
+### Iteration loop
+
+| Step | Action |
+|---|---|
+| 1 | Read question history — what users actually asked |
+| 2 | Mark answers as correct or incorrect |
+| 3 | Diagnose the gap — vocabulary, join path, or missing rule |
+| 4 | Apply the matching mechanism from the six above |
+| 5 | Re-run benchmarks to confirm no regression |
+
+### Where Genie predictably struggles
+
+| Limitation | Why |
+|---|---|
+| Ambiguous business terms | "Active customer" has no single definition without instructions |
+| Complex multi-hop joins | More tables, more chances to pick a wrong path |
+| Context absent from the data | It cannot answer what the tables do not contain |
+| Underspecified questions | "How are we doing?" has no determinate query |
+| Statistical or predictive questions | It generates SQL, not forecasts or models |
+| Poor data quality | It reflects the data; it does not repair it |
+| Consequential decisions | Answers warrant verification — the generated SQL is shown for that reason |
+
+### Data preparation
+
+| Practice | Why |
+|---|---|
+| Point at gold-layer tables | Fewer, cleaner tables beat many raw ones |
+| Use descriptive column names | Names are the model's primary signal |
+| Add table and column comments | Directly read during query generation |
+| Declare PK/FK constraints (informational) | Signals correct join paths |
+| Build curated views | Pre-join and pre-filter so Genie has less to infer |
+
+---
+
+## 14. Command index by intent
 
 | Intent | Command |
 |---|---|
@@ -738,7 +826,7 @@ A run overrunning its interval silently skips the next scheduled trigger — mis
 
 ---
 
-## 14. Numbers
+## 15. Numbers
 
 | Value | Fact |
 |---|---|
