@@ -157,9 +157,16 @@ Grouped by topic, following the order of `DATABRICKS_CORE_CONCEPTS.md`. Terms ap
 
 | Term | Definition |
 |---|---|
-| **Partitioning (table)** | Physical directory split by column value. Low-cardinality columns only; avoid below ~1 TB. |
+| **Partitioning (table)** | Physical directory split by column value. Low-cardinality columns only; avoid below ~1 TB. Legacy approach for new tables. |
 | **Liquid clustering** | Adaptive data layout replacing partitioning and Z-ordering. Keys redefinable without rewriting the table. GA May 2024. |
 | **Broadcast join** | Ships a small table to every executor so each joins locally, avoiding a shuffle. |
+| **Predictive Optimization** | Automatically runs `OPTIMIZE`, `VACUUM`, and `ANALYZE` on Unity Catalog managed tables. Enabled by default for new managed tables, workspaces, and accounts. |
+| **Predictive I/O** | Photon feature using learned heuristics to skip files and rows during scans. Subsumes bloom filter indexes. |
+| **Deletion vectors** | Merge-on-read: a `DELETE` marks rows in metadata rather than rewriting the file, so `DELETE`, `UPDATE`, and `MERGE` are much faster. Readers apply the vectors at scan time. |
+| **Disk cache** | Automatic caching of remote Parquet files on a node's local SSD. Distinct from Spark's `cache()`, which holds computed DataFrames in executor memory. |
+| **Bloom filter index** | Probabilistic per-file index for high-cardinality equality filters. **Deprecated** — use predictive I/O or liquid clustering. |
+| **REORG TABLE** | Rewrites files to physically purge rows marked by deletion vectors. |
+| **Auto-optimize** | `delta.autoOptimize.optimizeWrite` sizes files during write; `autoCompact` merges small files afterwards. |
 
 ### 1.11 Jobs and orchestration
 
@@ -577,11 +584,50 @@ The test is source mutability, not layer.
 
 ## 10. Performance
 
-| Technique | Mechanism | Change cost | Best for |
-|---|---|---|---|
-| Partitioning | Directory split | Full table rewrite | Low cardinality, > ~1 TB |
-| Z-ordering | In-file co-location during `OPTIMIZE` | Re-run `OPTIMIZE` | 2–3 filtered columns |
-| Liquid clustering | Adaptive clustering | `ALTER TABLE`, no rewrite | Default since 2024 |
+### Data layout
+
+| Technique | Mechanism | Change cost | Best for | Status |
+|---|---|---|---|---|
+| Partitioning | Directory split | Full table rewrite | Low cardinality, > ~1 TB | Legacy for new tables |
+| Z-ordering | In-file co-location during `OPTIMIZE` | Re-run `OPTIMIZE` | 2–3 filtered columns | Superseded by liquid |
+| Liquid clustering | Adaptive clustering | `ALTER TABLE`, no rewrite | Default choice | GA May 2024 |
+| Bloom filter index | Per-file probabilistic membership | Rebuild index | High-cardinality equality filters | **Deprecated** |
+
+Bloom filters are deprecated — predictive I/O performs file skipping across all columns and subsumes them.
+
+### Automatic optimizations
+
+| Feature | Does | Enabled by |
+|---|---|---|
+| Predictive Optimization | Runs `OPTIMIZE`, `VACUUM`, `ANALYZE` automatically | **Default on** for new UC managed tables |
+| Predictive I/O | Advanced file and row skipping via learned heuristics | Photon on supported compute |
+| Deletion vectors | Marks rows deleted in metadata instead of rewriting files | Table property, default on many UC tables |
+| Disk cache | Caches remote Parquet reads on local SSD | Automatic on supported instance types |
+| Auto-optimize | `optimizeWrite` sizes files, `autoCompact` merges small ones | Table properties |
+| Adaptive Query Execution | Coalesces partitions, converts joins, splits skew at runtime | On by default |
+
+### Deletion vectors
+
+| | Without (copy-on-write) | With (merge-on-read) |
+|---|---|---|
+| A `DELETE` of one row | Rewrites the whole file | Records the row as deleted in metadata |
+| Write speed | Slow — full file rewrite | Fast |
+| Read cost | None | Small — vectors applied at scan time |
+| Reclaimed by | Immediately | `OPTIMIZE` / `REORG TABLE` |
+| Best for | Rare deletes | Frequent `DELETE`, `UPDATE`, `MERGE` |
+
+### Caching compared
+
+| | Spark `cache()` / `persist()` | Disk cache |
+|---|---|---|
+| Caches | A computed DataFrame result | Raw Parquet files read from storage |
+| Triggered by | Your explicit call | Automatic |
+| Stored in | Executor memory, spilling to disk | Local SSD on the node |
+| Scope | The Spark session | Across queries on that node |
+| Applies to | Any DataFrame | Parquet and Delta reads |
+| Manage with | `.cache()`, `.unpersist()` | Nothing — automatic |
+
+Caching a plain table read on Databricks is usually redundant; the disk cache already covers it. Cache a *heavily transformed* DataFrame reused several times.
 
 ### Diagnosis
 
@@ -678,6 +724,10 @@ A run overrunning its interval silently skips the next scheduled trigger — mis
 | Compact small files | `OPTIMIZE t` |
 | Speed up a filtered column | `OPTIMIZE t ZORDER BY (c)` or `CLUSTER BY (c)` |
 | Reclaim storage | `VACUUM t` — check `DRY RUN` first |
+| Stop doing maintenance by hand | Predictive Optimization — on by default for UC managed tables |
+| Speed up frequent DELETE/UPDATE/MERGE | Enable deletion vectors |
+| Physically purge deletion-vector rows | `REORG TABLE t APPLY (PURGE)` |
+| Right-size files automatically | `delta.autoOptimize.optimizeWrite` = true |
 | Upsert a batch | `MERGE INTO ... WHEN MATCHED ... WHEN NOT MATCHED` |
 | Load new files, batch | `COPY INTO t FROM '/path' FILEFORMAT = ...` |
 | Load new files, at scale | Auto Loader with `cloudFiles` |
