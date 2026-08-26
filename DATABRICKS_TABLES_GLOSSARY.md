@@ -1,0 +1,656 @@
+# Databricks Tables & Glossary
+
+Everything in the reference documents reduced to lookup form. Section 1 is a glossary of every term, alphabetical. Sections 2–12 are comparison tables grouped by topic — every "X versus Y" distinction in one place. Section 13 indexes commands by what you are trying to do.
+
+Companion to `DATABRICKS_CORE_CONCEPTS.md`, which carries the explanations. This file assumes you already know the concept and need the distinction, the syntax, or the number.
+
+---
+
+## 1. Glossary
+
+### A–C
+
+| Term | Definition |
+|---|---|
+| **ACID transactions** | Atomicity, Consistency, Isolation, Durability. Delta Lake's guarantee that concurrent reads and writes never expose partial or corrupted state. |
+| **Action** | A Spark operation that triggers execution of the accumulated plan — `count()`, `collect()`, `show()`, `write`. One action produces one job. |
+| **Adaptive Query Execution (AQE)** | Runtime replanning: coalesces shuffle partitions, converts joins to broadcast when statistics allow, splits skewed partitions. On by default. |
+| **All-purpose cluster** | Interactive cluster created by a user, stays up until terminated or idle-timeout. For development. More expensive than a job cluster. |
+| **Anti join** | Returns left rows with *no* match on the right. No row multiplication. |
+| **APPLY CHANGES** | Declarative CDC in a pipeline. Handles out-of-order events via `SEQUENCE BY` and implements SCD Type 1 or 2 in one clause. |
+| **Asset Bundle** | `databricks.yml` declaring jobs and pipelines as versioned code with per-environment targets. Deployed with `databricks bundle deploy -t ENV`. |
+| **Auto Loader** | Structured Streaming source (`cloudFiles`) for incrementally ingesting files at scale, with schema inference and evolution built in. |
+| **Autoscaling** | Cluster adds or removes workers between a configured min and max based on load. |
+| **Bronze layer** | Raw ingested data, append-only, schema-permissive on purpose. A faithful record of what the source sent. |
+| **Broadcast join** | Ships a small table to every executor so each joins locally, avoiding a shuffle. |
+| **CAN_MANAGE** | Highest Jobs permission — edit, delete, set permissions. Superset of `CAN_MANAGE_RUN`. |
+| **CAN_MANAGE_RUN** | Jobs permission to trigger and cancel runs without editing the job definition. |
+| **CAN_VIEW** | Lowest Jobs permission — see configuration, run history, and logs only. |
+| **Catalog** | Second level of the Unity Catalog namespace, grouping schemas. Typically an environment or business unit. |
+| **Catalyst optimizer** | Spark's query optimizer. Rewrites a declarative plan before execution — reorders filters, prunes columns, selects join strategies. |
+| **Change Data Feed (CDF)** | Table property emitting row-level inserts, updates, and deletes for downstream incremental consumption. Read via `table_changes()`. |
+| **CHECK constraint** | Table constraint rejecting any write where a boolean condition is false. Rejects only — never cleans or routes. |
+| **Checkpoint (Delta)** | Parquet snapshot of cumulative log state written every 10 commits, so readers skip replaying every JSON commit. |
+| **Checkpoint (streaming)** | Directory holding stream progress — which files or offsets were processed. Deleting it reprocesses everything. |
+| **Classic SQL warehouse** | Customer-managed SQL compute without Pro-tier optimizations. Startup in minutes. |
+| **Cluster manager** | Allocates machines to a Spark application — Standalone, YARN, Kubernetes, or Databricks' own. |
+| **Cluster policy** | Admin template constraining what cluster configurations users may create. |
+| **Coalesce** | Reduces partition count without a full shuffle. Decrease only; can leave uneven partitions. |
+| **COPY INTO** | Idempotent SQL command for batch file loading. Tracks loaded files and skips them on re-run. |
+| **CTAS** | `CREATE TABLE ... AS SELECT`. Creates and populates in one statement, inferring schema. Carries no constraints, comments, or partitioning across. |
+| **Continuous trigger** | Job trigger starting a new run as soon as the previous one ends. |
+
+### D–G
+
+| Term | Definition |
+|---|---|
+| **DataFrame** | Distributed collection organized into named, typed columns. Introduced in Spark 1.3. Schema visibility is what lets Catalyst optimize. |
+| **Data skipping** | Using per-file min/max statistics in the log to avoid opening files that cannot match a filter. |
+| **Databricks Assistant** | In-context AI help for writing, explaining, and debugging code and SQL. For people who write queries. |
+| **Deep clone** | Full independent copy of data and metadata. Unaffected by operations on the source. |
+| **Delta Lake** | Open storage format pairing Parquet data files with an ordered transaction log. Supplies ACID guarantees on object storage. |
+| **`_delta_log`** | Directory of numbered JSON commit files plus periodic Parquet checkpoints. Defines which data files are live. |
+| **Dense rank** | Ranking that leaves no gaps after ties — 1, 2, 2, 3. |
+| **DESCRIBE HISTORY** | Lists every version of a Delta table with timestamp, operation, and user. |
+| **Development mode** | Pipeline setting reusing the cluster and *disabling retries* for fast iteration. Not for production. |
+| **Dimension table** | Descriptive attributes joined to a fact table. Denormalized in a star schema. |
+| **Driver** | Process running the application's main program. Builds the plan, schedules tasks, collects results. Exactly one per application. |
+| **Dynamic view** | View filtering rows or masking columns based on the caller, via `CURRENT_USER()` or `is_account_group_member()`. The row-security mechanism. |
+| **Executor** | Worker process running tasks and holding cached data. Many per cluster. |
+| **Expectation** | Declarative data-quality rule on a pipeline table, with three enforcement severities. |
+| **`expect`** | Expectation that keeps the failing row and records the violation as a metric. |
+| **`expect_or_drop`** | Expectation that excludes the failing row from output. Does **not** quarantine it. |
+| **`expect_or_fail`** | Expectation that fails the entire pipeline update on violation. |
+| **explode** | Flattens an array into one row per element. Drops rows whose array is empty or null. |
+| **explode_outer** | Like `explode`, but keeps rows with empty arrays, emitting `NULL`. |
+| **External location** | Unity Catalog object binding a storage credential to a path prefix. Grantable. |
+| **External table** | Table where Unity Catalog owns metadata only. Requires `LOCATION`. `DROP TABLE` leaves data files intact. |
+| **Fact table** | Central table in a star schema holding measures and foreign keys to dimensions. |
+| **File-arrival trigger** | Job trigger firing when new files appear at a storage location. |
+| **FILTER** | Higher-order function keeping array elements matching a lambda predicate. |
+| **Full refresh** | Recomputes a pipeline table from scratch, discarding existing state. |
+| **Genie** | Natural-language Q&A over a curated set of governed tables. For people who do not write SQL. |
+| **Gold layer** | Business-level aggregates and marts, shaped for how they will be read. |
+| **Grain** | What one row of a fact table represents. The most consequential modeling decision. |
+| **GRANT / REVOKE** | SQL statements adding or removing privileges on a securable for a principal. |
+| **GROUPING()** | Returns 1 for a `ROLLUP`/`CUBE` subtotal row, 0 for a data row. The only reliable way to tell them apart. |
+
+### H–P
+
+| Term | Definition |
+|---|---|
+| **Higher-order function** | Array function taking a lambda — `FILTER`, `TRANSFORM`, `REDUCE`, `EXISTS`. Operates in place without exploding to rows. |
+| **Idempotent** | Re-running produces the same end state. Required of bronze ingestion so replay after failure is safe. |
+| **Job** | One or more tasks wired into a DAG, with triggers, retries, and notifications. |
+| **Job cluster** | Cluster created for one job run and terminated when it finishes. Cheaper than all-purpose for scheduled work. |
+| **Lakeflow** | Umbrella for three components: Connect (ingestion), Declarative Pipelines (transformation), Jobs (orchestration). |
+| **Lakehouse** | Architecture providing warehouse guarantees directly on cheap open-format object storage. A pattern, not a product. |
+| **Lazy evaluation** | Transformations build a plan without executing. Only an action triggers work. Lets Catalyst optimize the whole chain. |
+| **Lineage** | Automatically captured table- and column-level dependency graph, derived from observed query execution. |
+| **Liquid clustering** | Adaptive data layout replacing partitioning and Z-ordering. Keys redefinable without rewriting the table. GA May 2024. |
+| **LIVE.** | Pipeline-scoped table reference. Resolves to the pipeline's own version of a table. |
+| **Managed table** | Table where Unity Catalog owns both metadata and data. `DROP TABLE` deletes the underlying files. |
+| **Materialized view** | Table recomputed from its defining query on refresh. Correct when upstream rows can be edited or deleted. |
+| **Medallion** | Bronze → silver → gold staging convention. A data-quality contract, not a feature you enable. |
+| **MERGE INTO** | Atomic upsert combining insert, update, and delete. Idempotent. Fails at runtime on a non-unique match key. |
+| **`mergeSchema`** | Write option adding newly-appearing columns to the target schema instead of failing. |
+| **Metastore** | Top-level Unity Catalog container, one per region, holding catalogs. |
+| **NOT NULL constraint** | Table constraint rejecting writes with null in the specified column. |
+| **OPTIMIZE** | Compacts small files into fewer larger ones. Never deletes — old files become tombstones. |
+| **`overwriteSchema`** | Write option replacing the target schema entirely on an overwrite. |
+| **Partition (Spark)** | Unit of parallelism. One task processes one partition. |
+| **Partitioning (table)** | Physical directory split by column value. Low-cardinality columns only; avoid below ~1 TB. |
+| **Photon** | Native vectorized C++ execution engine. Same API, faster execution. No code change. |
+| **Principal** | Identity that can hold privileges — user, group, or service principal. |
+| **Pro SQL warehouse** | Customer-managed SQL compute with Photon and advanced optimizations. Startup in minutes. |
+
+### Q–Z
+
+| Term | Definition |
+|---|---|
+| **Quarantine** | Separate table holding records that failed validation. Requires explicit filtering — no feature creates it for you. |
+| **RANK** | Ranking that leaves gaps after ties — 1, 2, 2, 4. |
+| **RDD** | Spark's original low-level API. Immutable distributed collection of arbitrary objects, with no schema, so no optimization. |
+| **REDUCE** | Higher-order function folding an array to a single value with an accumulator. |
+| **Repair run** | Re-executes only the failed and skipped tasks of a completed run, reusing successful output. Attaches to the original run. |
+| **Repartition** | Full shuffle changing partition count in either direction. Distributes evenly. |
+| **RESTORE TABLE** | Reverts a table to a prior version by committing a *new* version. History is preserved. |
+| **Retry** | Automatic re-execution of a failed task within the same run. |
+| **ROLLUP** | Aggregation producing subtotals and a grand total. Subtotal rows show `NULL` in the rolled-up column. |
+| **ROW_NUMBER** | Window function assigning a unique sequential integer per partition. Tie order is arbitrary. |
+| **Run-as identity** | The identity a job executes under. Needs its own Unity Catalog grants — separate from job permissions. |
+| **SCD Type 1** | Slowly changing dimension that overwrites. No history. |
+| **SCD Type 2** | Slowly changing dimension inserting a new row per change with validity dates. History preserved. |
+| **Schema (Unity Catalog)** | Third namespace level, grouping tables and views. Interchangeable with "database". |
+| **Schema enforcement** | Default rejection of writes whose schema does not match the target. |
+| **Schema evolution** | Opt-in relaxation of enforcement via `mergeSchema` or `overwriteSchema`. |
+| **schemaLocation** | Auto Loader option storing the inferred schema. Distinct from `checkpointLocation`. |
+| **Semi join** | Returns left rows *with* a match on the right, left columns only. No row multiplication. |
+| **SEQUENCE BY** | `APPLY CHANGES` clause ordering change events so a late-arriving older update cannot overwrite newer data. |
+| **Serverless SQL warehouse** | Databricks-managed SQL compute with near-instant startup. |
+| **Service principal** | Non-human identity for jobs and automation. Access survives staff changes. |
+| **Shallow clone** | Metadata-only copy referencing the source's files. Near-instant, but `VACUUM` on the source can break it. |
+| **Shuffle** | Redistribution of data across executors. Triggered by `groupBy`, `join`, `orderBy`, `repartition`. Stage boundary. |
+| **Silver layer** | Cleaned, typed, deduplicated, validated data. Enforces an explicit contract for gold. |
+| **Skew** | One partition far larger than its peers, so one task runs long after the rest finish. |
+| **Snowflake schema** | Star schema with normalized dimensions. More joins, less duplication. |
+| **Stage** | Portion of a job between shuffle boundaries. Contains one task per partition. |
+| **Star schema** | Central fact table surrounded by denormalized dimension tables. |
+| **Storage credential** | Unity Catalog object wrapping a cloud IAM identity. |
+| **Streaming table** | Pipeline table processing each input row once, incrementally. For append-only sources. |
+| **Surrogate key** | System-generated stable key. Required for SCD Type 2, where the natural key repeats. |
+| **Task** | One unit of work in a job — notebook, script, SQL, dbt, or pipeline. |
+| **Time travel** | Querying a table as of a prior version or timestamp. |
+| **Tombstone** | Data file removed from the current version but still on disk until `VACUUM`. |
+| **TRANSFORM** | Higher-order function applying a lambda to every array element. |
+| **Transformation** | Lazy Spark operation building the plan without executing — `select`, `filter`, `groupBy`, `join`. |
+| **Tungsten** | Spark's physical execution layer. Binary in-memory format and generated bytecode. |
+| **Unity Catalog** | Governance layer above all workspaces in a region, holding permissions, lineage, and audit. |
+| **VACUUM** | Physically deletes tombstoned files past retention. The only command that deletes. Irreversible. |
+| **Volume** | Unity Catalog securable for non-tabular files, governed like a table. |
+| **Window function** | Computes across related rows without collapsing them, unlike `GROUP BY`. |
+| **Z-ordering** | Co-locates related values within files during `OPTIMIZE`, tightening min/max ranges so skipping eliminates files. |
+
+---
+
+## 2. The four layers
+
+| Layer | What it is | Kind of thing |
+|---|---|---|
+| Apache Spark | Distributed execution engine | Software that runs |
+| Delta Lake | Storage format plus transaction log | File format |
+| Unity Catalog | Governance, permissions, lineage | Service |
+| Medallion | Bronze/silver/gold quality staging | Naming convention |
+| Lakehouse | The resulting architecture | Design pattern |
+
+Confusing these makes "which layer solves this problem" unanswerable. Transaction guarantees → Delta Lake. Serving BI and ML from one copy → lakehouse. Who can read a column → Unity Catalog.
+
+---
+
+## 3. Spark execution
+
+| Concept | Definition | Note |
+|---|---|---|
+| Driver | Plans and schedules | Exactly one per application |
+| Executor | Runs tasks, holds cache | Many per cluster |
+| Cluster manager | Allocates machines | Standalone, YARN, K8s, Databricks |
+| Job | Work triggered by one action | 1 action = 1 job |
+| Stage | Section between shuffles | Split at shuffle boundaries |
+| Task | Work on one partition | 1 task per partition |
+
+### RDD vs DataFrame
+
+| | RDD | DataFrame |
+|---|---|---|
+| Introduced | Spark 1.0 | Spark 1.3 (2015) |
+| Schema | None — arbitrary objects | Named, typed columns |
+| Optimization | None possible | Catalyst plans and rewrites |
+| Use today | Low-level fallback | Default for everything |
+
+### Transformation vs action
+
+| | Transformation | Action |
+|---|---|---|
+| Effect | Builds the plan | Executes it |
+| Returns | New DataFrame, immediately | A result or a write |
+| Cost when called | Zero | Full computation |
+| Examples | `select`, `filter`, `groupBy`, `join`, `withColumn` | `count`, `collect`, `show`, `write` |
+
+Errors inside a transformation surface only when an action runs — which is why a typo appears to "work" for several lines.
+
+### repartition vs coalesce
+
+| | `repartition(n)` | `coalesce(n)` |
+|---|---|---|
+| Direction | Up or down | Down only |
+| Shuffle | Full | Avoided |
+| Distribution | Even | Possibly uneven |
+| Cost | Higher | Lower |
+
+---
+
+## 4. Table types and storage
+
+### Managed vs external
+
+| | Managed | External |
+|---|---|---|
+| Metadata owner | Unity Catalog | Unity Catalog |
+| Data file owner | Unity Catalog | You |
+| `LOCATION` clause | Omitted | Required |
+| `DROP TABLE` | Deletes data and metadata | Deletes metadata only |
+| Auto-optimization | Available | Not available |
+| Recovery after drop | `UNDROP TABLE` within retention | Data was never deleted |
+| Choose when | Databricks is system of record | Shared with other tools, or pre-existing |
+
+Dropping an external table leaves orphaned files still billing you and still readable — appearing deleted when they are not.
+
+### View types
+
+| | View | Materialized view | Streaming table | Temporary view |
+|---|---|---|---|---|
+| Storage | None | Stored result | Stored, incremental | None |
+| Computed | Every read | On refresh | Per new row, once | Every read |
+| Correct under upstream edits | Yes | Yes | No | Yes |
+| Scope | Catalog | Catalog | Catalog | Session |
+
+### Clone types
+
+| | Deep clone | Shallow clone |
+|---|---|---|
+| Copies | Data and metadata | Metadata only |
+| Speed | Proportional to size | Near-instant |
+| Independence | Full | Shares source files |
+| Risk | None | `VACUUM` on source can break it |
+
+---
+
+## 5. Delta Lake operations
+
+| Command | Does | Deletes files? | Reversible |
+|---|---|---|---|
+| `OPTIMIZE` | Compacts small files | No — creates tombstones | Yes |
+| `ZORDER BY` | Co-locates values during OPTIMIZE | No | Yes |
+| `VACUUM` | Removes tombstoned files past retention | **Yes** | **No** |
+| `RESTORE` | Reverts to a prior version | No — commits forward | Yes |
+| `MERGE INTO` | Atomic upsert | No | Via time travel |
+
+### MERGE clauses
+
+| Clause | Fires when | Actions |
+|---|---|---|
+| `WHEN MATCHED` | Key in both | `UPDATE`, `DELETE` |
+| `WHEN NOT MATCHED` | Key in source only | `INSERT` |
+| `WHEN NOT MATCHED BY SOURCE` | Key in target only | `UPDATE`, `DELETE` |
+
+Each accepts an extra `AND` condition. A non-unique `ON` key matching one target row to several source rows fails at runtime rather than picking arbitrarily.
+
+### Retention properties
+
+| Property | Governs | Default |
+|---|---|---|
+| `delta.deletedFileRetentionDuration` | How long tombstones survive — what `VACUUM` honours | 7 days (168h) |
+| `delta.logRetentionDuration` | How long commit history is kept | 30 days |
+
+**Both** must cover a window for time travel that far back. Raising one alone silently fails.
+
+### Schema handling
+
+| Mode | Effect | Scope |
+|---|---|---|
+| Enforcement (default) | Rejects mismatched writes | Always on |
+| `mergeSchema` | Adds new columns | Per write |
+| `overwriteSchema` | Replaces schema entirely | Per write, on overwrite |
+
+Leaving `mergeSchema` permanently on defeats enforcement — upstream bugs get absorbed instead of surfacing.
+
+---
+
+## 6. Unity Catalog
+
+### Hierarchy
+
+| Level | Contains | Example |
+|---|---|---|
+| Metastore | Catalogs | One per region |
+| Catalog | Schemas | `prod`, `dev` |
+| Schema | Tables, views, volumes, functions | `sales` |
+| Securable | The data itself | `orders` |
+
+Addressed `catalog.schema.object`. Privileges inherit downward.
+
+### Privileges
+
+| Privilege | Applies to | Grants |
+|---|---|---|
+| `USE CATALOG` | Catalog | Traverse — prerequisite |
+| `USE SCHEMA` | Schema | Traverse — prerequisite |
+| `SELECT` | Table, view | Read rows |
+| `MODIFY` | Table | Insert, update, delete |
+| `CREATE TABLE` | Schema | Create tables |
+| `READ FILES` / `WRITE FILES` | External location, volume | File access |
+| `EXECUTE` | Function | Invoke |
+| `ALL PRIVILEGES` | Any | Everything applicable |
+
+Without `USE CATALOG` and `USE SCHEMA`, an object-level grant has no effect.
+
+### Principals
+
+| Type | Is | Use for |
+|---|---|---|
+| User | A human | Rarely — prefer groups |
+| Group | A named set | Default choice |
+| Service principal | Automation | Jobs, CI/CD |
+
+### Job vs data permissions
+
+| | Job permissions | Data permissions |
+|---|---|---|
+| Control | Operating the job | Reading the tables |
+| Levels | `CAN_VIEW` < `CAN_MANAGE_RUN` < `CAN_MANAGE` | `SELECT`, `MODIFY`, etc. |
+| Held by | The person | The run-as identity |
+
+Orthogonal. `CAN_MANAGE` on a job grants nothing on its tables.
+
+---
+
+## 7. SQL reference
+
+### Joins
+
+| Type | Returns | Multiplies rows |
+|---|---|---|
+| `INNER` | Matches on both sides | Yes |
+| `LEFT` / `RIGHT OUTER` | All from one side plus matches | Yes |
+| `FULL OUTER` | All from both sides | Yes |
+| `LEFT SEMI` | Left rows with a match, left columns only | **No** |
+| `LEFT ANTI` | Left rows without a match | **No** |
+| `CROSS` | Cartesian product | Yes |
+
+"Customers who ordered" as an inner join returns one row per order and inflates counts. Use `LEFT SEMI`.
+
+### Ranking functions
+
+| Function | On a tie at position 2 | Unique |
+|---|---|---|
+| `ROW_NUMBER()` | 1, 2, 3, 4 | Always |
+| `RANK()` | 1, 2, 2, 4 — gap | No |
+| `DENSE_RANK()` | 1, 2, 2, 3 — no gap | No |
+
+### Window frames
+
+| Frame | Meaning |
+|---|---|
+| `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` | Running total |
+| `ROWS BETWEEN n PRECEDING AND CURRENT ROW` | Moving window |
+| `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING` | Whole partition |
+| Omitted, with `ORDER BY` | Defaults to running |
+| Omitted, no `ORDER BY` | Whole partition |
+
+### Array handling
+
+| Approach | Keeps row structure | Empty arrays |
+|---|---|---|
+| `explode` | No — one row per element | Row dropped |
+| `explode_outer` | No | Row kept, `NULL` |
+| `FILTER` / `TRANSFORM` | Yes — operates in place | Preserved |
+
+### Aggregation
+
+| Form | Produces |
+|---|---|
+| `GROUP BY` | One row per group |
+| `ROLLUP` | Subtotals plus grand total |
+| `CUBE` | Every combination |
+| `GROUPING SETS` | An explicit list |
+| Window function | Every row preserved |
+
+`ROLLUP` subtotal rows are indistinguishable from real `NULL`s without `GROUPING()`.
+
+---
+
+## 8. Ingestion
+
+### COPY INTO vs Auto Loader
+
+| | COPY INTO | Auto Loader |
+|---|---|---|
+| Model | SQL command, scheduled | Structured Streaming source |
+| Discovery | Directory listing each run | Notifications or incremental listing |
+| Practical scale | Thousands of files | Millions |
+| Schema | Fixed or manual | Inference plus evolution |
+| State | Internal, per table | External checkpoint directory |
+| Idempotent | Yes | Yes |
+
+### Auto Loader's two state directories
+
+| Option | Holds | Deleting it |
+|---|---|---|
+| `cloudFiles.schemaLocation` | Inferred schema and its history | Re-infers schema |
+| `checkpointLocation` | Stream progress | **Reprocesses everything** |
+
+### Parse modes
+
+| Mode | Malformed row |
+|---|---|
+| `PERMISSIVE` (default) | Bad fields `NULL`, row kept |
+| `DROPMALFORMED` | Row discarded |
+| `FAILFAST` | Read aborts |
+
+`rescuedDataColumn` captures what did not fit, making `PERMISSIVE` recoverable rather than lossy.
+
+### Streaming triggers
+
+| Trigger | Behavior |
+|---|---|
+| `processingTime="5 minutes"` | Micro-batch on a clock |
+| `availableNow=True` | Drain everything pending, then stop |
+| `continuous="1 second"` | Low latency, limited operations |
+| Omitted | Continuous micro-batches |
+
+### Output modes
+
+| Mode | Writes |
+|---|---|
+| `append` | New rows only — default |
+| `complete` | Entire result table — aggregations only |
+| `update` | Rows changed this batch |
+
+---
+
+## 9. Declarative pipelines
+
+### The three names
+
+| Name | Era |
+|---|---|
+| Delta Live Tables (DLT) | 2021 original |
+| Lakeflow Declarative Pipelines | 2025 rebrand |
+| Spark Declarative Pipelines | 2025, donated to Apache Spark |
+
+Same programming model. No migration. The module is still `dlt`, the decorator still `@dlt.table`.
+
+### Lakeflow components
+
+| Component | Owns |
+|---|---|
+| Lakeflow Connect | Ingestion |
+| Lakeflow Declarative Pipelines | Transformation |
+| Lakeflow Jobs | Orchestration |
+
+### Imperative vs declarative
+
+| | Imperative | Declarative |
+|---|---|---|
+| You write | Steps, in order | Table definitions |
+| Ordering from | Your `depends_on` | Table references |
+| Retries | Configured per task | Runtime |
+| Checkpoints | You manage paths | Runtime |
+| Clusters | Configured per notebook | Pipeline config |
+| Can drift | Yes — config vs query | No — same artifact |
+
+### Reading upstream tables
+
+| Reader | Semantics |
+|---|---|
+| `dlt.read("t")` / `LIVE.t` | Complete table, all rows |
+| `dlt.read_stream("t")` / `STREAM(LIVE.t)` | Incremental, new rows only |
+
+### Expectations
+
+| Decorator | SQL clause | Failing row | Pipeline | Metrics |
+|---|---|---|---|---|
+| `expect` | `EXPECT (...)` | Kept | Continues | Recorded |
+| `expect_or_drop` | `ON VIOLATION DROP ROW` | Excluded | Continues | Recorded |
+| `expect_or_fail` | `ON VIOLATION FAIL UPDATE` | — | Update fails | Recorded |
+
+`expect_or_drop` does **not** quarantine. Dropped rows are gone; only a count survives.
+
+### Streaming table vs materialized view
+
+| | Streaming table | Materialized view |
+|---|---|---|
+| Processing | Each row once, incrementally | Recomputed from query |
+| Correct when | Source is append-only | Rows can be edited or deleted |
+| Cost | Proportional to new data | Proportional to result |
+| Typical layer | Bronze, most silver | Gold aggregates |
+
+The test is source mutability, not layer.
+
+### Enforcement mechanisms compared
+
+| | Constraint | Expectation | Quarantine |
+|---|---|---|---|
+| Lives on | The table | The pipeline definition | Your code |
+| On violation | Write rejected | Warn, drop, or fail | Row routed elsewhere |
+| Granularity | All or nothing | Per rule | Per predicate |
+| Preserves bad rows | No | No | **Yes** |
+
+### Pipeline modes
+
+| Setting | Options | Effect |
+|---|---|---|
+| Execution | Triggered / Continuous | Process and stop, or run indefinitely |
+| Channel | Current / Preview | Stability vs early features |
+| Development mode | On / Off | Reuse cluster, **no retries** |
+| Full refresh | Table or pipeline | Recompute from scratch |
+
+---
+
+## 10. Performance
+
+| Technique | Mechanism | Change cost | Best for |
+|---|---|---|---|
+| Partitioning | Directory split | Full table rewrite | Low cardinality, > ~1 TB |
+| Z-ordering | In-file co-location during `OPTIMIZE` | Re-run `OPTIMIZE` | 2–3 filtered columns |
+| Liquid clustering | Adaptive clustering | `ALTER TABLE`, no rewrite | Default since 2024 |
+
+### Diagnosis
+
+| Symptom | Cause | Remedy |
+|---|---|---|
+| Thousands of tiny files | Frequent small writes | `OPTIMIZE`, auto-optimize |
+| Scanning files that cannot match | Poor clustering | `ZORDER` or liquid clustering |
+| Scanning irrelevant directories | No partition pruning | Partition on a filtered column |
+| Large shuffle vs a small table | Missing broadcast | `broadcast()` hint |
+| One task far longer than peers | Skew | AQE, salting, repartition |
+| Repeated identical scans | No caching | `.cache()` plus an action |
+
+Read the Query Profile before changing anything — it shows files scanned versus pruned, shuffle volume, and per-stage timing.
+
+---
+
+## 11. Jobs
+
+### Triggers
+
+| Trigger | Fires |
+|---|---|
+| Manual | On demand |
+| Scheduled | Cron expression |
+| File arrival | New files at a location |
+| Continuous | When the previous run ends |
+
+### Retry vs repair vs continuous
+
+| | Retry | Repair | Continuous |
+|---|---|---|---|
+| Initiated | Automatically | Manually | Automatically |
+| Scope | One task, in-run | Failed subset of a finished run | Whole new run |
+| Run identity | Same | Same | New |
+| Reuses success | N/A | Yes | No |
+
+### Task fields
+
+| Field | Purpose |
+|---|---|
+| `depends_on` | Upstream tasks that must succeed |
+| `max_retries` | Automatic re-execution count |
+| `retry_on_timeout` | Whether timeout is retryable |
+| `timeout_seconds` | Kill after this duration |
+| `run_if` | `ALL_SUCCESS`, `NONE_FAILED`, `ALL_DONE`, … |
+| `max_concurrent_runs` | Job-level; **defaults to 1** |
+
+A run overrunning its interval silently skips the next scheduled trigger — missing runs appear nowhere as failures.
+
+---
+
+## 12. Data modeling
+
+### Star vs snowflake
+
+| | Star | Snowflake |
+|---|---|---|
+| Dimensions | Denormalized | Normalized |
+| Joins per query | Fewer | More |
+| Storage | Some duplication | Less |
+| Preferred in a lakehouse | Yes | Rarely |
+
+### SCD Type 1 vs Type 2
+
+| | Type 1 | Type 2 |
+|---|---|---|
+| On change | Overwrites | Inserts a new row |
+| History | Lost | Preserved |
+| Extra columns | None | Validity dates, current flag |
+| Point-in-time queries | Impossible | Supported |
+| Key needed | Natural sufficient | **Surrogate required** |
+
+### Keys
+
+| | Surrogate | Natural / business |
+|---|---|---|
+| Source | System-generated | Comes with the data |
+| Stability | Stable | Can change |
+| SCD Type 2 | Required | Repeats across versions |
+
+---
+
+## 13. Command index by intent
+
+| Intent | Command |
+|---|---|
+| What type is this table? | `DESCRIBE EXTENDED t` |
+| What happened to this table? | `DESCRIBE HISTORY t` |
+| What are its properties? | `SHOW TBLPROPERTIES t` |
+| Who can access it? | `SHOW GRANTS ON TABLE t` |
+| Read it as of yesterday | `SELECT * FROM t TIMESTAMP AS OF '...'` |
+| Undo a bad write | `RESTORE TABLE t TO VERSION AS OF n` |
+| Recover a dropped managed table | `UNDROP TABLE t` |
+| Compact small files | `OPTIMIZE t` |
+| Speed up a filtered column | `OPTIMIZE t ZORDER BY (c)` or `CLUSTER BY (c)` |
+| Reclaim storage | `VACUUM t` — check `DRY RUN` first |
+| Upsert a batch | `MERGE INTO ... WHEN MATCHED ... WHEN NOT MATCHED` |
+| Load new files, batch | `COPY INTO t FROM '/path' FILEFORMAT = ...` |
+| Load new files, at scale | Auto Loader with `cloudFiles` |
+| See row-level changes | `SELECT * FROM table_changes('t', n)` |
+| Debug a pipeline | `SELECT * FROM event_log(TABLE(cat.sch.pipeline))` |
+| Re-run only what failed | `databricks jobs repair-run --run-id N --rerun-all-failed-tasks` |
+| Deploy jobs as code | `databricks bundle deploy -t prod` |
+
+---
+
+## 14. Numbers
+
+| Value | Fact |
+|---|---|
+| 3 | Unity Catalog namespace levels |
+| 1 | Metastores per region |
+| 1 | Drivers per Spark application |
+| 10 | Commits between Delta checkpoints |
+| 168 hours (7 days) | `VACUUM` default retention |
+| 30 days | `logRetentionDuration` default |
+| 1 | `max_concurrent_runs` default |
+| 6 | Join types |
+| 3 | Ranking window functions |
+| 3 | Expectation severities |
+| 3 | SQL warehouse types |
+| 3 | Jobs permission levels |
+| 3 | Medallion layers |
+| 2 | Table constraint types |
+| 2 | DLT table types |
+| ~1 TB | Threshold below which not to partition |
+| 2009 | Spark created at UC Berkeley AMPLab |
+| 2019 | Delta Lake open-sourced |
+| 2024 | Liquid clustering GA |
+| 2025 | DLT becomes Lakeflow Declarative Pipelines |
