@@ -29,8 +29,8 @@ Grouped by topic, following the order of `DATABRICKS_CORE_CONCEPTS.md`. Terms ap
 | **Stage** | Portion of a job between shuffle boundaries. Contains one task per partition. |
 | **Task** | One unit of work in a job — notebook, script, SQL, dbt, or pipeline. |
 | **Skew** | One partition far larger than its peers, so one task runs long after the rest finish. |
-| **Repartition** | Full shuffle changing partition count in either direction. Distributes evenly. |
-| **Coalesce** | Reduces partition count without a full shuffle. Decrease only; can leave uneven partitions. |
+| **Repartition** | Redistributes rows across the network to a target partition count, increasing or decreasing. Costs a full shuffle, produces even partitions, and leaves upstream parallelism intact. |
+| **Coalesce** | Merges adjacent partitions in place to reduce partition count. Cannot increase it — a larger target is silently ignored. Avoids the shuffle, but the reduced parallelism propagates upstream, so `coalesce(1)` can force a whole job onto one core. |
 | **Adaptive Query Execution (AQE)** | Runtime replanning: coalesces shuffle partitions, converts joins to broadcast when statistics allow, splits skewed partitions. On by default. |
 | **Photon** | Native vectorized C++ execution engine. Same API, faster execution. No code change. |
 
@@ -251,10 +251,24 @@ Grouped by topic, following the order of `DATABRICKS_CORE_CONCEPTS.md`. Terms ap
 
 | | `repartition(n)` | `coalesce(n)` |
 |---|---|---|
-| Direction | Up or down | Down only |
-| Shuffle | Full | Avoided |
-| Distribution | Even | Possibly uneven |
-| Cost | Higher | Lower |
+| Increasing partition count | Works | **Silently does nothing** |
+| Decreasing partition count | Works | Works |
+| How rows move | Redistributed across the network | Adjacent partitions merged in place |
+| Resulting sizes | Even | Uneven — existing skew is preserved |
+| Cost of the operation | Full shuffle — expensive | Cheap, no shuffle |
+| Effect on upstream stages | None — upstream runs at full parallelism | **Reduced parallelism propagates upstream** |
+| Cost of the overall job | Predictable | Can be far worse — see below |
+
+`coalesce(1)` before a write forces every upstream filter, join, and aggregation into a **single task on a single core**, because avoiding the shuffle means the reduced parallelism propagates backwards through the plan. On a large job this commonly runs out of memory. `repartition(1)` keeps upstream work parallel and shuffles only at the end — a more expensive operation, but a dramatically faster job.
+
+| Situation | Use |
+|---|---|
+| Increasing partition count | `repartition` — `coalesce` cannot |
+| Small reduction, little upstream work | `coalesce` |
+| Large reduction with upstream computation | `repartition` |
+| Partitions are skewed | `repartition` — `coalesce` preserves skew |
+| Rows need grouping by a column | `repartition("col")` |
+| Controlling output file size on Delta | Neither — use `optimizeWrite` / `OPTIMIZE` |
 
 ---
 

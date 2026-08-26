@@ -195,13 +195,13 @@ graph LR
     end
 ```
 
-| | Managed | External |
-|---|---|---|
-| Data files owned by | Unity Catalog | You |
-| `LOCATION` clause | Omitted | Required |
-| `DROP TABLE` deletes | Data and metadata | Metadata only |
-| Storage layout | UC-controlled | Whatever you point at |
-| Best fit | Databricks is system of record | Files shared with other tools, or pre-existing |
+|                        | Managed                        | External                                       |
+| ---------------------- | ------------------------------ | ---------------------------------------------- |
+| Data files owned by    | Unity Catalog                  | You                                            |
+| `LOCATION` clause    | Omitted                        | Required                                       |
+| `DROP TABLE` deletes | Data and metadata              | Metadata only                                  |
+| Storage layout         | UC-controlled                  | Whatever you point at                          |
+| Best fit               | Databricks is system of record | Files shared with other tools, or pre-existing |
 
 ```sql
 -- Managed: no LOCATION, Unity Catalog chooses storage
@@ -392,14 +392,14 @@ CREATE TEMPORARY VIEW tv AS SELECT ...;         -- session-scoped
 
 ### Joins
 
-| Type | Returns |
-|---|---|
-| `INNER` | Rows with a match on both sides |
-| `LEFT` / `RIGHT` | All rows from one side, plus matches |
-| `FULL` | All rows from both sides |
-| `LEFT SEMI` | Left rows *with* a match — left columns only, no duplication |
-| `LEFT ANTI` | Left rows *without* a match |
-| `CROSS` | Cartesian product |
+| Type                 | Returns                                                        |
+| -------------------- | -------------------------------------------------------------- |
+| `INNER`            | Rows with a match on both sides                                |
+| `LEFT` / `RIGHT` | All rows from one side, plus matches                           |
+| `FULL`             | All rows from both sides                                       |
+| `LEFT SEMI`        | Left rows*with* a match — left columns only, no duplication |
+| `LEFT ANTI`        | Left rows*without* a match                                   |
+| `CROSS`            | Cartesian product                                              |
 
 ```sql
 -- Semi and anti avoid the row multiplication a plain join causes on one-to-many
@@ -501,11 +501,11 @@ graph LR
     B -.->|failed validation| Q[Quarantine]
 ```
 
-| Layer | Contract it upholds | Typical operations |
-|---|---|---|
+| Layer  | Contract it upholds                              | Typical operations                                 |
+| ------ | ------------------------------------------------ | -------------------------------------------------- |
 | Bronze | Faithful record of what the source actually sent | Append-only loads, loose types, ingestion metadata |
-| Silver | Trustworthy — typed, deduplicated, validated | `MERGE`, filters, joins, constraints |
-| Gold | Shaped for how it will be read | Aggregations, star schemas, denormalized marts |
+| Silver | Trustworthy — typed, deduplicated, validated    | `MERGE`, filters, joins, constraints             |
+| Gold   | Shaped for how it will be read                   | Aggregations, star schemas, denormalized marts     |
 
 - **Bronze is deliberately schema-permissive, and that is not sloppiness.** Storing fields as string, `VARIANT`, or binary means an upstream type change or new field does not break ingestion. Bronze's job is to capture what arrived, faithfully, so that a source-side change is a silver-layer problem to handle deliberately rather than a pipeline outage at 3am. Strict typing belongs one layer later.
 - **Bronze ingestion must be idempotent or every layer inherits corruption.** Jobs fail and get re-run — a cluster dies mid-load, a timeout fires, someone triggers a backfill. If replay duplicates rows, that duplication propagates silently into every downstream aggregate. Auto Loader and `COPY INTO` both track which source files they have consumed precisely so replay is safe.
@@ -619,13 +619,13 @@ df = (spark.readStream.format("cloudFiles")
    .toTable("sales_bronze"))
 ```
 
-| | COPY INTO | Auto Loader |
-|---|---|---|
-| Model | SQL command, scheduled | Structured Streaming source |
-| File discovery | Directory listing each run | Notifications or incremental listing, checkpointed |
-| Practical scale | Thousands of files | Millions |
-| Schema | Fixed or manually specified | Inference plus evolution built in |
-| State | Tracked internally per table | External checkpoint directory |
+|                 | COPY INTO                    | Auto Loader                                        |
+| --------------- | ---------------------------- | -------------------------------------------------- |
+| Model           | SQL command, scheduled       | Structured Streaming source                        |
+| File discovery  | Directory listing each run   | Notifications or incremental listing, checkpointed |
+| Practical scale | Thousands of files           | Millions                                           |
+| Schema          | Fixed or manually specified  | Inference plus evolution built in                  |
+| State           | Tracked internally per table | External checkpoint directory                      |
 
 - **Two independent state directories, easily confused.** `schemaLocation` holds the inferred schema and its evolution history. `checkpointLocation` holds stream progress — which files have been processed. They serve different purposes and deleting either has different consequences.
 - **`availableNow=True` gives batch scheduling with streaming machinery.** Auto Loader is a streaming source but need not run continuously. This trigger processes everything currently pending and stops, so a scheduled Job can invoke it while retaining scalable file discovery and schema evolution.
@@ -744,11 +744,11 @@ def orders_validated():
     return dlt.read_stream("orders_bronze")
 ```
 
-| Decorator | Failing row | Pipeline | Use when |
-|---|---|---|---|
-| `@dlt.expect` | Kept in output | Continues | Monitoring a soft signal without altering data |
-| `@dlt.expect_or_drop` | Excluded from output | Continues | The row is unusable but its absence is tolerable |
-| `@dlt.expect_or_fail` | — | Update fails immediately | A violation means something upstream is fundamentally broken |
+| Decorator               | Failing row          | Pipeline                 | Use when                                                     |
+| ----------------------- | -------------------- | ------------------------ | ------------------------------------------------------------ |
+| `@dlt.expect`         | Kept in output       | Continues                | Monitoring a soft signal without altering data               |
+| `@dlt.expect_or_drop` | Excluded from output | Continues                | The row is unusable but its absence is tolerable             |
+| `@dlt.expect_or_fail` | —                   | Update fails immediately | A violation means something upstream is fundamentally broken |
 
 - **All three record metrics regardless of enforcement.** Every expectation's pass and fail counts land in the pipeline event log whether or not it alters the data, which makes `@dlt.expect` genuinely useful as pure instrumentation — a rising violation rate on a soft rule is an early warning before it becomes a hard failure.
 - **Severity is chosen per rule, not per table.** One table commonly carries all three levels, as above: a sanity check that only warns, a validity check that drops the row, and a structural check that halts everything. The decision for each is what a violation actually implies — bad data point, unusable row, or broken upstream contract.
@@ -800,12 +800,12 @@ STORED AS SCD TYPE 2;
 
 ### Pipeline modes and operations
 
-| Setting | Options | Effect |
-|---|---|---|
-| Execution | Triggered / Continuous | Process available data and stop, versus run indefinitely |
-| Channel | Current / Preview | Runtime version stability versus early features |
-| Development mode | On / Off | Reuse cluster and skip retries for fast iteration, versus production behavior |
-| Full refresh | Per table or pipeline | Recompute from scratch, discarding existing state |
+| Setting          | Options                | Effect                                                                        |
+| ---------------- | ---------------------- | ----------------------------------------------------------------------------- |
+| Execution        | Triggered / Continuous | Process available data and stop, versus run indefinitely                      |
+| Channel          | Current / Preview      | Runtime version stability versus early features                               |
+| Development mode | On / Off               | Reuse cluster and skip retries for fast iteration, versus production behavior |
+| Full refresh     | Per table or pipeline  | Recompute from scratch, discarding existing state                             |
 
 ```sql
 -- The event log is a queryable table
@@ -896,13 +896,13 @@ df.cache()        # lazy — populated by the next action
 df.count()        # materializes the cache
 df.unpersist()    # release it
 
-df.repartition(200, "customer_id")   # full shuffle, up or down
-df.coalesce(50)                      # decrease only, avoids full shuffle
+df.repartition(200, "customer_id")   # redistributes rows; increase or decrease
+df.coalesce(50)                      # merges in place; decrease only, no shuffle
 ```
 
 - **Broadcast joins eliminate the shuffle when one side is small.** Shipping a small table to every executor lets each one join locally, avoiding the network-wide redistribution a shuffle join requires. Adaptive Query Execution applies this automatically when statistics show one side is small enough; the explicit hint is for cases where statistics are missing or wrong.
 - **Skew is the most common mystery slowdown.** One partition far larger than the rest means one task runs long after every other has finished, and the stage cannot complete until it does. The signature in the Query Profile is a single task with a duration far above the median. AQE handles many cases automatically; the manual remedies are salting the key or repartitioning.
-- **`repartition` and `coalesce` are not interchangeable.** `repartition` performs a full shuffle and can increase or decrease partition count, distributing evenly. `coalesce` only decreases and avoids a full shuffle by merging adjacent partitions, which is cheaper but can leave uneven partitions.
+- **`repartition` and `coalesce` are not interchangeable.** `repartition` redistributes rows across the network to reach any target count, costing a full shuffle but producing even partitions. `coalesce` merges adjacent partitions in place, so it is far cheaper — but it cannot increase the count (a larger target is silently ignored), it preserves existing skew, and critically, the reduced parallelism propagates *upstream*. A `coalesce(1)` before a write forces every preceding filter, join, and aggregation onto a single core, which on a large job commonly exhausts memory; `repartition(1)` keeps that work parallel and shuffles only at the end.
 - **Photon accelerates without code changes.** It is a native vectorized C++ reimplementation of Spark's execution layer, enabled per cluster or via Pro and Serverless SQL warehouses. Scan, filter, aggregate, and join workloads benefit most; the API is unchanged.
 
 The gotcha: `OPTIMIZE` rewrites data into new files and leaves the originals in place as unreferenced tombstones until `VACUUM` removes them, which means running it aggressively on a large table can double storage consumption for the duration of the retention window. On a table optimized daily with a 30-day retention, the accumulated tombstones can substantially exceed the live data. The related trap is running `OPTIMIZE` without a `WHERE` clause on a table where only recent partitions receive writes — it rewrites historical data that was already well-organized, burning compute and generating tombstones for no benefit. Bound the scope to the range that actually changed.
@@ -1015,17 +1015,16 @@ upstream_count = dbutils.jobs.taskValues.get(
 )
 ```
 
-| Permission | Grants |
-|---|---|
-| `CAN_VIEW` | See configuration, run history, and logs |
-| `CAN_MANAGE_RUN` | Trigger and cancel runs, plus everything above |
-| `CAN_MANAGE` | Edit tasks, schedule, permissions, delete, plus everything above |
+| Permission         | Grants                                                           |
+| ------------------ | ---------------------------------------------------------------- |
+| `CAN_VIEW`       | See configuration, run history, and logs                         |
+| `CAN_MANAGE_RUN` | Trigger and cancel runs, plus everything above                   |
+| `CAN_MANAGE`     | Edit tasks, schedule, permissions, delete, plus everything above |
 
 - **Job permissions and data permissions are orthogonal.** `CAN_MANAGE` on a job grants nothing on the tables that job reads or writes. The run-as identity — typically a service principal — needs its own Unity Catalog grants, and a job failing with `PERMISSION_DENIED` is usually about that identity rather than the person who triggered it.
 - **Asset Bundles define jobs as versioned code.** A `databricks.yml` declares jobs and pipelines with per-environment targets, deployed via `databricks bundle deploy -t prod`, which puts scheduling and configuration under the same review process as the transformation logic.
 
 The gotcha: `max_concurrent_runs` defaults to 1, and a scheduled job whose run takes longer than its interval will therefore skip the next scheduled trigger rather than queueing or overlapping it. An hourly job that occasionally takes 90 minutes silently processes 12 windows a day instead of 24, and the missing runs appear nowhere as failures — the run history simply has gaps. The reverse configuration is equally hazardous: raising `max_concurrent_runs` on a job whose tasks write to the same table produces concurrent writers competing for the same Delta commits, which Delta's optimistic concurrency will resolve by failing one of them. Neither default nor override is safe without knowing the job's actual duration distribution against its schedule.
-
 
 ## 14. Revision
 
@@ -1049,18 +1048,18 @@ Addressed as `catalog.schema.object`. Three levels, always.
 
 **Privileges**
 
-| Privilege | Applies to | Grants |
-|---|---|---|
-| `USE CATALOG` | Catalog | Traverse into it — prerequisite for anything beneath |
-| `USE SCHEMA` | Schema | Traverse into it — prerequisite for anything beneath |
-| `SELECT` | Table, view | Read rows |
-| `MODIFY` | Table | Insert, update, delete, merge |
-| `CREATE TABLE` | Schema | Create tables within it |
-| `CREATE SCHEMA` | Catalog | Create schemas within it |
-| `READ FILES` | External location, volume | Read files at that path |
-| `WRITE FILES` | External location, volume | Write files at that path |
-| `EXECUTE` | Function | Invoke it |
-| `ALL PRIVILEGES` | Any | Every applicable privilege |
+| Privilege          | Applies to                | Grants                                                |
+| ------------------ | ------------------------- | ----------------------------------------------------- |
+| `USE CATALOG`    | Catalog                   | Traverse into it — prerequisite for anything beneath |
+| `USE SCHEMA`     | Schema                    | Traverse into it — prerequisite for anything beneath |
+| `SELECT`         | Table, view               | Read rows                                             |
+| `MODIFY`         | Table                     | Insert, update, delete, merge                         |
+| `CREATE TABLE`   | Schema                    | Create tables within it                               |
+| `CREATE SCHEMA`  | Catalog                   | Create schemas within it                              |
+| `READ FILES`     | External location, volume | Read files at that path                               |
+| `WRITE FILES`    | External location, volume | Write files at that path                              |
+| `EXECUTE`        | Function                  | Invoke it                                             |
+| `ALL PRIVILEGES` | Any                       | Every applicable privilege                            |
 
 Privileges granted at a level inherit to everything beneath it. `USE CATALOG` and `USE SCHEMA` are traversal grants — without them, an object-level grant has no effect.
 
@@ -1108,15 +1107,15 @@ Functions available inside a dynamic view: `CURRENT_USER()`, `is_account_group_m
 
 ### 14.2 Managed vs external tables
 
-| | Managed | External |
-|---|---|---|
-| Metadata owner | Unity Catalog | Unity Catalog |
-| Data file owner | Unity Catalog | You |
-| `LOCATION` | Omitted | Required |
-| `DROP TABLE` | Deletes data + metadata | Deletes metadata only |
-| Automatic optimization | Available | Not available / unsafe |
-| Recovery after drop | `UNDROP TABLE` within retention | Data never deleted |
-| Choose when | Databricks is system of record | Shared with other tools, pre-existing, or regulatory pinning |
+|                        | Managed                           | External                                                     |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------ |
+| Metadata owner         | Unity Catalog                     | Unity Catalog                                                |
+| Data file owner        | Unity Catalog                     | You                                                          |
+| `LOCATION`           | Omitted                           | Required                                                     |
+| `DROP TABLE`         | Deletes data + metadata           | Deletes metadata only                                        |
+| Automatic optimization | Available                         | Not available / unsafe                                       |
+| Recovery after drop    | `UNDROP TABLE` within retention | Data never deleted                                           |
+| Choose when            | Databricks is system of record    | Shared with other tools, pre-existing, or regulatory pinning |
 
 ```sql
 -- Managed
@@ -1181,11 +1180,11 @@ WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
 WHEN NOT MATCHED BY SOURCE THEN DELETE;          -- in target, absent from source
 ```
 
-| Clause | Fires when |
-|---|---|
-| `WHEN MATCHED` | Key exists in both — `UPDATE` or `DELETE` |
-| `WHEN NOT MATCHED` | Key in source only — `INSERT` |
-| `WHEN NOT MATCHED BY SOURCE` | Key in target only — `UPDATE` or `DELETE` |
+| Clause                         | Fires when                                    |
+| ------------------------------ | --------------------------------------------- |
+| `WHEN MATCHED`               | Key exists in both —`UPDATE` or `DELETE` |
+| `WHEN NOT MATCHED`           | Key in source only —`INSERT`               |
+| `WHEN NOT MATCHED BY SOURCE` | Key in target only —`UPDATE` or `DELETE` |
 
 Each clause accepts an additional `AND` condition. `UPDATE SET *` and `INSERT *` expand all columns. Idempotent on re-run. A non-unique `ON` key that matches one target row to multiple source rows fails at runtime.
 
@@ -1227,16 +1226,16 @@ The only command that physically deletes files. Irreversible. `OPTIMIZE` and `ZO
 
 **Table properties**
 
-| Property | Effect |
-|---|---|
-| `delta.deletedFileRetentionDuration` | How long tombstoned files survive — what `VACUUM` honours |
-| `delta.logRetentionDuration` | How long commit history is kept |
-| `delta.autoOptimize.optimizeWrite` | Right-size files during write |
-| `delta.autoOptimize.autoCompact` | Compact small files after write |
-| `delta.enableChangeDataFeed` | Emit row-level change records |
-| `delta.columnMapping.mode` | `name` allows rename/drop without rewriting files |
-| `delta.minReaderVersion` / `delta.minWriterVersion` | Protocol version floors |
-| `delta.appendOnly` | Reject updates and deletes |
+| Property                                                | Effect                                                      |
+| ------------------------------------------------------- | ----------------------------------------------------------- |
+| `delta.deletedFileRetentionDuration`                  | How long tombstoned files survive — what`VACUUM` honours |
+| `delta.logRetentionDuration`                          | How long commit history is kept                             |
+| `delta.autoOptimize.optimizeWrite`                    | Right-size files during write                               |
+| `delta.autoOptimize.autoCompact`                      | Compact small files after write                             |
+| `delta.enableChangeDataFeed`                          | Emit row-level change records                               |
+| `delta.columnMapping.mode`                            | `name` allows rename/drop without rewriting files         |
+| `delta.minReaderVersion` / `delta.minWriterVersion` | Protocol version floors                                     |
+| `delta.appendOnly`                                    | Reject updates and deletes                                  |
 
 ```sql
 ALTER TABLE t SET TBLPROPERTIES (
@@ -1256,6 +1255,7 @@ Time travel to a point requires **both** retention settings to cover that window
 SELECT * FROM table_changes('prod.sales.orders', 42);
 SELECT * FROM table_changes('prod.sales.orders', '2026-08-01', '2026-08-20');
 ```
+
 Adds `_change_type` (`insert`, `update_preimage`, `update_postimage`, `delete`), `_commit_version`, `_commit_timestamp`.
 
 **Schema enforcement and evolution**
@@ -1265,10 +1265,10 @@ df.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTabl
 df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("t")
 ```
 
-| Mode | Effect |
-|---|---|
-| default | Reject schema mismatch |
-| `mergeSchema` | Add newly-appearing columns |
+| Mode                | Effect                      |
+| ------------------- | --------------------------- |
+| default             | Reject schema mismatch      |
+| `mergeSchema`     | Add newly-appearing columns |
 | `overwriteSchema` | Replace the schema entirely |
 
 **Constraints**
@@ -1279,6 +1279,7 @@ ALTER TABLE t ALTER COLUMN customer_id DROP NOT NULL;
 ALTER TABLE t ADD CONSTRAINT positive_total CHECK (order_total > 0);
 ALTER TABLE t DROP CONSTRAINT positive_total;
 ```
+
 Constraints reject writes. They never clean, transform, or route.
 
 ### 14.4 SQL syntax
@@ -1303,14 +1304,14 @@ CTAS carries column names and inferred types only — **no** constraints, commen
 
 **Joins**
 
-| Type | Returns | Row multiplication |
-|---|---|---|
-| `INNER` | Matches on both sides | Yes, on one-to-many |
-| `LEFT` / `RIGHT OUTER` | All from one side + matches | Yes |
-| `FULL OUTER` | All from both sides | Yes |
-| `LEFT SEMI` | Left rows with a match, left columns only | No |
-| `LEFT ANTI` | Left rows without a match | No |
-| `CROSS` | Cartesian product | Yes |
+| Type                       | Returns                                   | Row multiplication  |
+| -------------------------- | ----------------------------------------- | ------------------- |
+| `INNER`                  | Matches on both sides                     | Yes, on one-to-many |
+| `LEFT` / `RIGHT OUTER` | All from one side + matches               | Yes                 |
+| `FULL OUTER`             | All from both sides                       | Yes                 |
+| `LEFT SEMI`              | Left rows with a match, left columns only | No                  |
+| `LEFT ANTI`              | Left rows without a match                 | No                  |
+| `CROSS`                  | Cartesian product                         | Yes                 |
 
 `LEFT SEMI` is the correct form for "customers who ordered" — an inner join returns one row per order and inflates counts.
 
@@ -1334,14 +1335,14 @@ SELECT
 FROM t;
 ```
 
-| Frame | Meaning |
-|---|---|
-| `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` | Running total |
-| `ROWS BETWEEN n PRECEDING AND CURRENT ROW` | Moving window of n+1 rows |
-| `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING` | Whole partition |
-| `RANGE BETWEEN ...` | By value rather than row position |
-| Omitted, with `ORDER BY` | Defaults to a running frame |
-| Omitted, no `ORDER BY` | Whole partition |
+| Frame                                                        | Meaning                           |
+| ------------------------------------------------------------ | --------------------------------- |
+| `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`         | Running total                     |
+| `ROWS BETWEEN n PRECEDING AND CURRENT ROW`                 | Moving window of n+1 rows         |
+| `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING` | Whole partition                   |
+| `RANGE BETWEEN ...`                                        | By value rather than row position |
+| Omitted, with`ORDER BY`                                    | Defaults to a running frame       |
+| Omitted, no`ORDER BY`                                      | Whole partition                   |
 
 Windows do not collapse rows; `GROUP BY` does.
 
@@ -1401,11 +1402,11 @@ current_date()   current_timestamp()   from_utc_timestamp(ts, 'IST')
 
 ### 14.5 Medallion
 
-| Layer | Contract | Write mode | Typical operations |
-|---|---|---|---|
-| Bronze | Faithful record of what arrived | Append | Idempotent loads, loose types, provenance columns |
-| Silver | Typed, deduplicated, validated | Append or `MERGE` | Filters, joins, casts, constraints |
-| Gold | Shaped for reading | Overwrite or `MERGE` | Aggregations, star schemas, denormalized marts |
+| Layer  | Contract                        | Write mode            | Typical operations                                |
+| ------ | ------------------------------- | --------------------- | ------------------------------------------------- |
+| Bronze | Faithful record of what arrived | Append                | Idempotent loads, loose types, provenance columns |
+| Silver | Typed, deduplicated, validated  | Append or`MERGE`    | Filters, joins, casts, constraints                |
+| Gold   | Shaped for reading              | Overwrite or`MERGE` | Aggregations, star schemas, denormalized marts    |
 
 - Bronze is schema-permissive **on purpose** — string, `VARIANT`, or binary so upstream changes do not break ingestion.
 - Bronze ingestion **must** be idempotent or every downstream layer inherits duplication.
@@ -1441,11 +1442,11 @@ SELECT * FROM parquet.`/mnt/raw/archive/`;
    .load("/mnt/raw/sales/"))
 ```
 
-| Parse mode | Malformed row |
-|---|---|
-| `PERMISSIVE` (default) | Unparseable fields set to `NULL`, row kept |
-| `DROPMALFORMED` | Row discarded |
-| `FAILFAST` | Read aborts |
+| Parse mode               | Malformed row                               |
+| ------------------------ | ------------------------------------------- |
+| `PERMISSIVE` (default) | Unparseable fields set to`NULL`, row kept |
+| `DROPMALFORMED`        | Row discarded                               |
+| `FAILFAST`             | Read aborts                                 |
 
 **COPY INTO**
 
@@ -1473,41 +1474,41 @@ Idempotent — tracks loaded files internally, skips them on re-run. `force = 't
    .load("/mnt/raw/sales/"))
 ```
 
-| Option | Purpose |
-|---|---|
-| `cloudFiles.format` | Source format |
-| `cloudFiles.schemaLocation` | Where the inferred schema is stored |
-| `cloudFiles.schemaEvolutionMode` | `addNewColumns`, `rescue`, `failOnNewColumns`, `none` |
-| `cloudFiles.useNotifications` | Event notifications instead of directory listing |
-| `cloudFiles.maxFilesPerTrigger` | Throughput cap per micro-batch |
-| `cloudFiles.includeExistingFiles` | Process files already present at start |
+| Option                              | Purpose                                                       |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `cloudFiles.format`               | Source format                                                 |
+| `cloudFiles.schemaLocation`       | Where the inferred schema is stored                           |
+| `cloudFiles.schemaEvolutionMode`  | `addNewColumns`, `rescue`, `failOnNewColumns`, `none` |
+| `cloudFiles.useNotifications`     | Event notifications instead of directory listing              |
+| `cloudFiles.maxFilesPerTrigger`   | Throughput cap per micro-batch                                |
+| `cloudFiles.includeExistingFiles` | Process files already present at start                        |
 
-| | COPY INTO | Auto Loader |
-|---|---|---|
-| Model | SQL command, scheduled | Structured Streaming source |
+|           | COPY INTO                 | Auto Loader                         |
+| --------- | ------------------------- | ----------------------------------- |
+| Model     | SQL command, scheduled    | Structured Streaming source         |
 | Discovery | Directory listing per run | Notification or incremental listing |
-| Scale | Thousands of files | Millions |
-| Schema | Fixed or manual | Inference + evolution |
-| State | Internal per table | External checkpoint directory |
+| Scale     | Thousands of files        | Millions                            |
+| Schema    | Fixed or manual           | Inference + evolution               |
+| State     | Internal per table        | External checkpoint directory       |
 
 **Two distinct state directories** — `schemaLocation` holds the schema; `checkpointLocation` holds stream progress. Deleting the checkpoint reprocesses everything.
 
 **Triggers**
 
-| Trigger | Behavior |
-|---|---|
-| `.trigger(processingTime="5 minutes")` | Micro-batch on a fixed clock |
-| `.trigger(availableNow=True)` | Process all pending, then stop — batch semantics |
-| `.trigger(continuous="1 second")` | Low latency, limited operation support |
-| omitted | Continuous micro-batches as fast as possible |
+| Trigger                                  | Behavior                                          |
+| ---------------------------------------- | ------------------------------------------------- |
+| `.trigger(processingTime="5 minutes")` | Micro-batch on a fixed clock                      |
+| `.trigger(availableNow=True)`          | Process all pending, then stop — batch semantics |
+| `.trigger(continuous="1 second")`      | Low latency, limited operation support            |
+| omitted                                  | Continuous micro-batches as fast as possible      |
 
 **Output modes**
 
-| Mode | Writes |
-|---|---|
-| `append` | Only new rows — default, requires no aggregation or a watermark |
-| `complete` | Entire result table each batch — aggregations only |
-| `update` | Only rows that changed this batch |
+| Mode         | Writes                                                           |
+| ------------ | ---------------------------------------------------------------- |
+| `append`   | Only new rows — default, requires no aggregation or a watermark |
+| `complete` | Entire result table each batch — aggregations only              |
+| `update`   | Only rows that changed this batch                                |
 
 ### 14.7 Declarative pipelines
 
@@ -1547,10 +1548,10 @@ AS SELECT region, SUM(total) AS revenue FROM LIVE.orders_silver GROUP BY region;
 CREATE TEMPORARY STREAMING TABLE staging AS SELECT * FROM STREAM(LIVE.orders_bronze);
 ```
 
-| Reader | Semantics |
-|---|---|
-| `dlt.read("t")` / `LIVE.t` | Complete table — reads all of it |
-| `dlt.read_stream("t")` / `STREAM(LIVE.t)` | Incremental — new rows only |
+| Reader                                        | Semantics                         |
+| --------------------------------------------- | --------------------------------- |
+| `dlt.read("t")` / `LIVE.t`                | Complete table — reads all of it |
+| `dlt.read_stream("t")` / `STREAM(LIVE.t)` | Incremental — new rows only      |
 
 Dependencies are **inferred from these references**. There is no `depends_on`.
 
@@ -1574,22 +1575,22 @@ CREATE OR REFRESH STREAMING TABLE t (
 ) AS SELECT * FROM STREAM(LIVE.bronze);
 ```
 
-| Decorator | SQL clause | Failing row | Pipeline |
-|---|---|---|---|
-| `expect` | `EXPECT (...)` | Kept | Continues |
-| `expect_or_drop` | `ON VIOLATION DROP ROW` | Excluded | Continues |
-| `expect_or_fail` | `ON VIOLATION FAIL UPDATE` | — | Update fails |
+| Decorator          | SQL clause                   | Failing row | Pipeline     |
+| ------------------ | ---------------------------- | ----------- | ------------ |
+| `expect`         | `EXPECT (...)`             | Kept        | Continues    |
+| `expect_or_drop` | `ON VIOLATION DROP ROW`    | Excluded    | Continues    |
+| `expect_or_fail` | `ON VIOLATION FAIL UPDATE` | —          | Update fails |
 
 All three record pass/fail metrics in the event log regardless of enforcement. `expect_or_drop` does **not** quarantine — dropped rows are gone, only counted.
 
 **Streaming table vs materialized view**
 
-| | Streaming table | Materialized view |
-|---|---|---|
-| Processing | Incremental, each row once | Recomputed from the query |
-| Correct when | Source is append-only | Upstream rows can be edited or deleted |
-| Typical layer | Bronze, most silver | Gold aggregates |
-| Cost | Low, proportional to new data | Higher, proportional to result |
+|               | Streaming table               | Materialized view                      |
+| ------------- | ----------------------------- | -------------------------------------- |
+| Processing    | Incremental, each row once    | Recomputed from the query              |
+| Correct when  | Source is append-only         | Upstream rows can be edited or deleted |
+| Typical layer | Bronze, most silver           | Gold aggregates                        |
+| Cost          | Low, proportional to new data | Higher, proportional to result         |
 
 Deciding question is **mutability of the source**, not layer.
 
@@ -1624,14 +1625,14 @@ STORED AS SCD TYPE 2;
 
 **Pipeline configuration**
 
-| Setting | Options | Effect |
-|---|---|---|
-| Execution mode | Triggered / Continuous | Process available data and stop, or run indefinitely |
-| Channel | Current / Preview | Runtime stability vs early features |
-| Development mode | On / Off | Reuse cluster, **no retries**, fast iteration |
-| Production mode | — | Fresh cluster, full retry behavior |
-| Full refresh | Table or pipeline | Recompute from scratch, discarding state |
-| Target | Catalog + schema | Where tables are published |
+| Setting          | Options                | Effect                                               |
+| ---------------- | ---------------------- | ---------------------------------------------------- |
+| Execution mode   | Triggered / Continuous | Process available data and stop, or run indefinitely |
+| Channel          | Current / Preview      | Runtime stability vs early features                  |
+| Development mode | On / Off               | Reuse cluster,**no retries**, fast iteration   |
+| Production mode  | —                     | Fresh cluster, full retry behavior                   |
+| Full refresh     | Table or pipeline      | Recompute from scratch, discarding state             |
+| Target           | Catalog + schema       | Where tables are published                           |
 
 **Event log**
 
@@ -1657,14 +1658,14 @@ Event types: `flow_progress`, `flow_definition`, `create_update`, `user_action`,
 
 **Diagnosis order** — read the Query Profile first; it shows files scanned versus pruned, shuffle volume, and per-stage timing.
 
-| Symptom | Cause | Remedy |
-|---|---|---|
-| Thousands of tiny files | Frequent small writes | `OPTIMIZE`, `autoOptimize` |
-| Scanning files that cannot match | Poor clustering | `ZORDER` or liquid clustering |
-| Scanning whole irrelevant directories | No partition pruning | Partitioning on a filtered low-cardinality column |
-| Large shuffle against a small table | Missing broadcast | `broadcast()` hint |
-| One task far longer than peers | Data skew | AQE, salting, repartition |
-| Repeated identical scans | No caching | `.cache()` + an action |
+| Symptom                               | Cause                 | Remedy                                            |
+| ------------------------------------- | --------------------- | ------------------------------------------------- |
+| Thousands of tiny files               | Frequent small writes | `OPTIMIZE`, `autoOptimize`                    |
+| Scanning files that cannot match      | Poor clustering       | `ZORDER` or liquid clustering                   |
+| Scanning whole irrelevant directories | No partition pruning  | Partitioning on a filtered low-cardinality column |
+| Large shuffle against a small table   | Missing broadcast     | `broadcast()` hint                              |
+| One task far longer than peers        | Data skew             | AQE, salting, repartition                         |
+| Repeated identical scans              | No caching            | `.cache()` + an action                          |
 
 **Commands**
 
@@ -1685,11 +1686,11 @@ ALTER TABLE t CLUSTER BY NONE;
 ANALYZE TABLE t COMPUTE STATISTICS FOR ALL COLUMNS;
 ```
 
-| Technique | Mechanism | Change cost | Best for |
-|---|---|---|---|
-| Partitioning | Directory split | Full table rewrite | Low cardinality, > ~1 TB |
-| Z-ordering | In-file co-location during `OPTIMIZE` | Re-run `OPTIMIZE` | 2–3 filtered columns |
-| Liquid clustering | Adaptive clustering | `ALTER TABLE`, no rewrite | Default choice since 2024 |
+| Technique         | Mechanism                              | Change cost                 | Best for                  |
+| ----------------- | -------------------------------------- | --------------------------- | ------------------------- |
+| Partitioning      | Directory split                        | Full table rewrite          | Low cardinality, > ~1 TB  |
+| Z-ordering        | In-file co-location during`OPTIMIZE` | Re-run`OPTIMIZE`          | 2–3 filtered columns     |
+| Liquid clustering | Adaptive clustering                    | `ALTER TABLE`, no rewrite | Default choice since 2024 |
 
 Do not partition tables below roughly 1 TB. High-cardinality partitioning creates the small-file problem it was meant to prevent.
 
@@ -1700,16 +1701,19 @@ from pyspark.sql.functions import broadcast
 large.join(broadcast(small), "key")     # ship small side, no shuffle
 
 df.cache();  df.count();  df.unpersist()   # cache is lazy until an action
-df.repartition(200, "customer_id")         # full shuffle, up or down
-df.coalesce(50)                            # decrease only, no full shuffle
+df.repartition(200, "customer_id")         # redistributes rows; any target count
+df.coalesce(50)                            # merges in place; decrease only
 df.explain(True)                           # inspect the plan
 ```
 
-| | `repartition(n)` | `coalesce(n)` |
-|---|---|---|
-| Direction | Up or down | Down only |
-| Shuffle | Full | Avoided |
-| Distribution | Even | Possibly uneven |
+|                              | `repartition(n)`                    | `coalesce(n)`                                  |
+| ---------------------------- | ----------------------------------- | ---------------------------------------------- |
+| Increasing partition count   | Works                               | **Silently does nothing**                      |
+| Decreasing partition count   | Works                               | Works                                          |
+| How rows move                | Redistributed across the network    | Adjacent partitions merged in place            |
+| Resulting sizes              | Even                                | Uneven — existing skew preserved               |
+| Cost of the operation        | Full shuffle — expensive            | Cheap, no shuffle                              |
+| Effect on upstream stages    | None — upstream stays parallel      | **Reduced parallelism propagates upstream**    |
 
 **Photon** — native vectorized C++ execution layer. Per-cluster toggle or via Pro/Serverless SQL warehouses. No code change. Benefits scan, filter, aggregate, join.
 
@@ -1719,26 +1723,26 @@ df.explain(True)                           # inspect the plan
 
 **Structure** — a Job holds Tasks wired into a DAG. Task types: notebook, Python script, Python wheel, JAR, SQL, dbt, pipeline, run-job. "Workflows" and "Lakeflow Jobs" are the same product.
 
-| Trigger | Fires |
-|---|---|
-| Manual | On demand |
-| Scheduled | Cron expression + timezone |
+| Trigger      | Fires                           |
+| ------------ | ------------------------------- |
+| Manual       | On demand                       |
+| Scheduled    | Cron expression + timezone      |
 | File arrival | New files at a storage location |
-| Continuous | New run when the previous ends |
+| Continuous   | New run when the previous ends  |
 
 **Task configuration**
 
-| Field | Purpose |
-|---|---|
-| `task_key` | Unique name within the job |
-| `depends_on` | Upstream tasks that must succeed first |
-| `max_retries` | Automatic re-execution count on failure |
-| `min_retry_interval_millis` | Delay between retries |
-| `retry_on_timeout` | Whether a timeout counts as retryable |
-| `timeout_seconds` | Kill the task after this duration |
-| `run_if` | `ALL_SUCCESS`, `AT_LEAST_ONE_SUCCESS`, `NONE_FAILED`, `ALL_DONE`, `AT_LEAST_ONE_FAILED`, `ALL_FAILED` |
-| `job_cluster_key` | Which shared job cluster to run on |
-| `max_concurrent_runs` | Job-level; **defaults to 1** |
+| Field                         | Purpose                                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `task_key`                  | Unique name within the job                                                                                        |
+| `depends_on`                | Upstream tasks that must succeed first                                                                            |
+| `max_retries`               | Automatic re-execution count on failure                                                                           |
+| `min_retry_interval_millis` | Delay between retries                                                                                             |
+| `retry_on_timeout`          | Whether a timeout counts as retryable                                                                             |
+| `timeout_seconds`           | Kill the task after this duration                                                                                 |
+| `run_if`                    | `ALL_SUCCESS`, `AT_LEAST_ONE_SUCCESS`, `NONE_FAILED`, `ALL_DONE`, `AT_LEAST_ONE_FAILED`, `ALL_FAILED` |
+| `job_cluster_key`           | Which shared job cluster to run on                                                                                |
+| `max_concurrent_runs`       | Job-level;**defaults to 1**                                                                                 |
 
 ```json
 {
@@ -1767,11 +1771,11 @@ databricks jobs repair-run --run-id 12345 --rerun-all-failed-tasks \
 
 Re-runs failed tasks and those skipped because of them, reusing successful output. Attaches to the original run rather than creating a new one. Parameters may be changed on repair.
 
-| | Retry | Repair | Continuous |
-|---|---|---|---|
-| Trigger | Automatic | Manual | Automatic |
-| Scope | One task, within a run | Failed subset of a finished run | Whole new run |
-| Run identity | Same run | Same run | New run |
+|              | Retry                  | Repair                          | Continuous    |
+| ------------ | ---------------------- | ------------------------------- | ------------- |
+| Trigger      | Automatic              | Manual                          | Automatic     |
+| Scope        | One task, within a run | Failed subset of a finished run | Whole new run |
+| Run identity | Same run               | Same run                        | New run       |
 
 **Parameters and task values**
 
@@ -1787,11 +1791,11 @@ Dynamic references: `{{job.start_time.iso_date}}`, `{{job.id}}`, `{{run.id}}`, `
 
 **Permissions**
 
-| Level | Grants |
-|---|---|
-| `CAN_VIEW` | Configuration, run history, logs |
-| `CAN_MANAGE_RUN` | Trigger and cancel runs + everything above |
-| `CAN_MANAGE` | Edit, delete, set permissions + everything above |
+| Level              | Grants                                           |
+| ------------------ | ------------------------------------------------ |
+| `CAN_VIEW`       | Configuration, run history, logs                 |
+| `CAN_MANAGE_RUN` | Trigger and cancel runs + everything above       |
+| `CAN_MANAGE`     | Edit, delete, set permissions + everything above |
 
 Orthogonal to data access — the **run-as identity** still needs Unity Catalog grants on every table touched.
 
@@ -1810,51 +1814,51 @@ databricks bundle destroy -t dev
 
 ### 14.10 Cross-cutting distinctions
 
-| Confused pair | Distinction |
-|---|---|
-| Lakehouse / Delta Lake | Architecture / the storage format implementing it |
-| Unity Catalog / metastore | Governance product / its top-level container object |
-| Schema / database | Identical — interchangeable keywords |
-| Managed / external | `DROP` destroys data / spares it |
-| Constraint / expectation | Rejects the write / graduated response in a pipeline |
-| Expectation / quarantine | Drops or fails / explicit routing you write |
-| View / materialized view / streaming table | Recomputed per read / stored and refreshed / incremental append |
-| `dlt.read` / `dlt.read_stream` | Complete table / incremental new rows |
-| Partitioning / Z-order / liquid clustering | Directories / in-file co-location / adaptive, redefinable |
-| `repartition` / `coalesce` | Full shuffle either direction / decrease only, no shuffle |
-| Retry / repair / continuous | Auto within a run / manual on a finished run / new run |
-| `COPY INTO` / Auto Loader | Batch idempotent / streaming at scale with evolution |
-| `schemaLocation` / `checkpointLocation` | Inferred schema / stream progress |
-| `explode` / `explode_outer` | Drops empty arrays / keeps them as `NULL` |
-| `RANK` / `DENSE_RANK` / `ROW_NUMBER` | Gaps after ties / no gaps / always unique |
-| SCD Type 1 / Type 2 | Overwrite, no history / new row with validity range |
-| Job permissions / data permissions | Operating the job / reading the tables |
-| `mergeSchema` / `overwriteSchema` | Add new columns / replace the schema |
+| Confused pair                               | Distinction                                                     |
+| ------------------------------------------- | --------------------------------------------------------------- |
+| Lakehouse / Delta Lake                      | Architecture / the storage format implementing it               |
+| Unity Catalog / metastore                   | Governance product / its top-level container object             |
+| Schema / database                           | Identical — interchangeable keywords                           |
+| Managed / external                          | `DROP` destroys data / spares it                              |
+| Constraint / expectation                    | Rejects the write / graduated response in a pipeline            |
+| Expectation / quarantine                    | Drops or fails / explicit routing you write                     |
+| View / materialized view / streaming table  | Recomputed per read / stored and refreshed / incremental append |
+| `dlt.read` / `dlt.read_stream`          | Complete table / incremental new rows                           |
+| Partitioning / Z-order / liquid clustering  | Directories / in-file co-location / adaptive, redefinable       |
+| `repartition` / `coalesce`              | Shuffles rows to any count, even sizes / merges in place, decrease only, and drags reduced parallelism upstream |
+| Retry / repair / continuous                 | Auto within a run / manual on a finished run / new run          |
+| `COPY INTO` / Auto Loader                 | Batch idempotent / streaming at scale with evolution            |
+| `schemaLocation` / `checkpointLocation` | Inferred schema / stream progress                               |
+| `explode` / `explode_outer`             | Drops empty arrays / keeps them as`NULL`                      |
+| `RANK` / `DENSE_RANK` / `ROW_NUMBER`  | Gaps after ties / no gaps / always unique                       |
+| SCD Type 1 / Type 2                         | Overwrite, no history / new row with validity range             |
+| Job permissions / data permissions          | Operating the job / reading the tables                          |
+| `mergeSchema` / `overwriteSchema`       | Add new columns / replace the schema                            |
 
 ### 14.11 Failure modes
 
-| Failure | Cause | Prevention |
-|---|---|---|
-| Dynamic view returns everything | Direct or inherited grant on the base table | Audit inherited grants at every level above |
-| Time travel broken after `VACUUM` | Retention below reader needs | Keep 168h default; raise both retention properties |
-| Time travel still fails after raising retention | Only `deletedFileRetentionDuration` raised | Raise `logRetentionDuration` too |
-| Query slows after partitioning | High-cardinality partition column | Liquid clustering instead |
-| Silent bad data downstream | `mergeSchema` permanently enabled | Opt in per write only |
-| Unexpected storage bill | Orphaned files from a dropped external table | Explicit cleanup after drop |
-| Data "deleted" but still readable | External table dropped, files remain | Delete files separately |
-| Duplicated history | Stream checkpoint deleted | Truncate target in the same operation |
-| Missing rows after array flatten | `explode` on empty arrays | `explode_outer` |
-| Report double-counts | `ROLLUP` subtotals treated as data rows | Filter on `GROUPING()` |
-| Constraints lost after CTAS | CTAS carries none | Re-declare after creation |
-| Scheduled runs silently skipped | Run duration exceeds interval, `max_concurrent_runs` = 1 | Match schedule to actual duration |
-| Concurrent write conflicts | `max_concurrent_runs` raised on same-table writers | Keep at 1 or partition the writes |
-| `MERGE` runtime failure | Non-unique `ON` key | Deduplicate source first |
-| Storage doubles after `OPTIMIZE` | Tombstones pending `VACUUM` | Bound `OPTIMIZE` with `WHERE` |
-| Pipeline will not start | Typo in a `dlt.read()` name | Error names the missing dataset |
-| No retries in production | Development mode left on | Switch to production mode |
-| Quarantine table empty | `expect_or_drop` assumed to route rows | Write explicit filtering |
-| Shallow clone breaks | `VACUUM` on the source | Deep clone for independence |
-| Job fails `PERMISSION_DENIED` | Run-as identity lacks UC grants | Grant to the service principal |
+| Failure                                         | Cause                                                     | Prevention                                         |
+| ----------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
+| Dynamic view returns everything                 | Direct or inherited grant on the base table               | Audit inherited grants at every level above        |
+| Time travel broken after`VACUUM`              | Retention below reader needs                              | Keep 168h default; raise both retention properties |
+| Time travel still fails after raising retention | Only`deletedFileRetentionDuration` raised               | Raise`logRetentionDuration` too                  |
+| Query slows after partitioning                  | High-cardinality partition column                         | Liquid clustering instead                          |
+| Silent bad data downstream                      | `mergeSchema` permanently enabled                       | Opt in per write only                              |
+| Unexpected storage bill                         | Orphaned files from a dropped external table              | Explicit cleanup after drop                        |
+| Data "deleted" but still readable               | External table dropped, files remain                      | Delete files separately                            |
+| Duplicated history                              | Stream checkpoint deleted                                 | Truncate target in the same operation              |
+| Missing rows after array flatten                | `explode` on empty arrays                               | `explode_outer`                                  |
+| Report double-counts                            | `ROLLUP` subtotals treated as data rows                 | Filter on`GROUPING()`                            |
+| Constraints lost after CTAS                     | CTAS carries none                                         | Re-declare after creation                          |
+| Scheduled runs silently skipped                 | Run duration exceeds interval,`max_concurrent_runs` = 1 | Match schedule to actual duration                  |
+| Concurrent write conflicts                      | `max_concurrent_runs` raised on same-table writers      | Keep at 1 or partition the writes                  |
+| `MERGE` runtime failure                       | Non-unique`ON` key                                      | Deduplicate source first                           |
+| Storage doubles after`OPTIMIZE`               | Tombstones pending`VACUUM`                              | Bound`OPTIMIZE` with `WHERE`                   |
+| Pipeline will not start                         | Typo in a`dlt.read()` name                              | Error names the missing dataset                    |
+| No retries in production                        | Development mode left on                                  | Switch to production mode                          |
+| Quarantine table empty                          | `expect_or_drop` assumed to route rows                  | Write explicit filtering                           |
+| Shallow clone breaks                            | `VACUUM` on the source                                  | Deep clone for independence                        |
+| Job fails`PERMISSION_DENIED`                  | Run-as identity lacks UC grants                           | Grant to the service principal                     |
 
 ### 14.12 Full command index
 
